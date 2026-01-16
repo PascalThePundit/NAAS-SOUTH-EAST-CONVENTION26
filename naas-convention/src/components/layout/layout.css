@@ -116,6 +116,10 @@
 
 /* Responsive Nav Links */
 @media (max-width: 768px) {
+  .navbar {
+    padding: 1rem; /* Reduce padding on mobile */
+  }
+
   .menu-toggle {
     display: flex;
   }
@@ -218,6 +222,12 @@
 .section-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+@media (max-width: 480px) {
+  .section-wrapper {
+    padding: var(--space-md) 1rem; /* Reduce section padding on small mobile */
+  }
 }
 
 /* Footer */

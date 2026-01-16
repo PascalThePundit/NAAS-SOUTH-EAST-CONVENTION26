@@ -396,12 +396,12 @@ const RegistrationForm = () => {
 
             {/* Total Display */}
             <div className="total-counter">
-                <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                <div className="fee-wrapper">
                      <div>
                         <span className="currency">₦</span>
                         <span>{totalAmount.toLocaleString()}</span>
                      </div>
-                     <span style={{fontSize: '1rem', color: '#ffd700', marginTop: '0.5rem', fontWeight: 'normal', textShadow: 'none', letterSpacing: '1px'}}>
+                     <span className="fee-subtitle">
                         (Includes Official Convention T-Shirt)
                      </span>
                 </div>

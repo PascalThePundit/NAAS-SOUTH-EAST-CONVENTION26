@@ -97,74 +97,6 @@ select.input-field option {
     color: white;
 }
 
-/* Toggle Switch - Sleek */
-.toggle-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 2rem 0;
-    padding: 1rem;
-    background: rgba(0,0,0,0.2);
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.05);
-}
-
-.toggle-label {
-    display: flex;
-    flex-direction: column;
-}
-
-.toggle-title {
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 0.2rem;
-}
-
-.toggle-price {
-    font-size: 0.9rem;
-    color: #ffd700;
-}
-
-.switch-checkbox {
-    height: 0;
-    width: 0;
-    visibility: hidden;
-    position: absolute;
-}
-
-.switch-label {
-    cursor: pointer;
-    text-indent: -9999px;
-    width: 50px;
-    height: 26px;
-    background: grey;
-    display: block;
-    border-radius: 100px;
-    position: relative;
-    transition: 0.3s;
-}
-
-.switch-label:after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 22px;
-    height: 22px;
-    background: #fff;
-    border-radius: 90px;
-    transition: 0.3s;
-}
-
-.switch-checkbox:checked + .switch-label {
-    background: #ffd700;
-}
-
-.switch-checkbox:checked + .switch-label:after {
-    left: calc(100% - 2px);
-    transform: translateX(-100%);
-}
-
 /* Cyber-Gold Button */
 .cyber-btn {
     width: 100%;
@@ -209,6 +141,22 @@ select.input-field option {
     color: #fff;
     margin-bottom: 2rem;
     text-shadow: 0 0 20px rgba(255,215,0,0.3);
+}
+
+.fee-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.fee-subtitle {
+    font-size: 1rem;
+    color: #ffd700;
+    margin-top: 0.5rem;
+    font-weight: normal;
+    text-shadow: none;
+    letter-spacing: 1px;
 }
 
 .currency {
@@ -299,4 +247,41 @@ select.input-field option {
 /* Active Animation */
 .gender-card:active .gender-content {
     transform: scale(0.98);
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 480px) {
+    .registration-wrapper {
+        padding: 1rem; /* Reduce wrapper padding */
+    }
+
+    .glass-card-ui {
+        padding: 2rem 1.5rem; /* Reduce card padding */
+        border-radius: 16px;
+    }
+
+    .total-counter {
+        font-size: 2rem; /* Smaller price on mobile */
+    }
+
+    .fee-subtitle {
+        font-size: 0.85rem; /* Smaller subtitle */
+        letter-spacing: 0.5px;
+    }
+
+    .input-container {
+        margin-bottom: 1.5rem; /* Tighter vertical spacing */
+    }
+
+    .gender-content {
+        padding: 0.75rem;
+    }
+
+    .gender-icon {
+        font-size: 1.2rem;
+    }
+
+    .gender-text {
+        font-size: 0.8rem;
+    }
 }

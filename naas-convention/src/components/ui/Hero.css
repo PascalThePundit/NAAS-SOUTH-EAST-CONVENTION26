@@ -190,9 +190,18 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .hero-container {
+    padding: var(--space-md); /* Reduce container padding */
+  }
+
   .mascot-cta-container {
     flex-direction: column;
     gap: var(--space-md);
+  }
+
+  .mascot-placeholder-hero {
+    width: 180px; /* Reduce mascot size on tablet/mobile */
+    height: 180px;
   }
 
   .hero-title {
@@ -202,5 +211,18 @@
   .hero-subtitle {
     font-size: var(--text-base); /* Scale down subtitle */
     padding: 0 1rem; /* Add padding for safe zone */
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 2rem; /* Explicitly smaller on very small screens */
+  }
+
+  .btn-hero {
+    padding: 0.8rem 2rem; /* Compact button */
+    font-size: 1rem;
+    width: 100%; /* Full width button on mobile */
+    max-width: 280px;
   }
 }
