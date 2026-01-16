@@ -1,0 +1,248 @@
+/* Layout & Animation Styles */
+
+/* 1. The Cosmic Shell */
+.cosmic-shell {
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  /* Deep Cosmic Background from Global Variables */
+  background: var(--deep-cosmic-bg);
+  color: var(--pure-white);
+  overflow-x: hidden;
+}
+
+/* Starfield/Sparkle Overlay */
+.cosmic-shell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  /* Subtle noise/sparkle effect using a repeating gradient pattern */
+  background-image: 
+    radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
+    radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 2px),
+    radial-gradient(rgba(255,255,255,.1), rgba(255,255,255,.1) 2px, transparent 3px);
+  background-size: 550px 550px, 350px 350px, 250px 250px;
+  background-position: 0 0, 40px 60px, 130px 270px;
+  opacity: 0.07; /* Very low opacity for subtle effect */
+}
+
+/* 2. Premium Navigation Bar */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  width: 100%;
+  
+  /* Glassmorphism */
+  background: rgba(5, 8, 16, 0.6); /* Semi-transparent Deep Cosmic */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--frosted-silver);
+  transition: padding 0.3s var(--ease-premium);
+}
+
+.nav-brand {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: var(--text-lg);
+  color: var(--pure-white);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  list-style: none;
+}
+
+.nav-link {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: color 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nav-link:hover {
+  color: var(--gold-bright);
+}
+
+/* Mobile Toggle */
+.menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  height: 21px;
+  cursor: pointer;
+  z-index: 102;
+}
+
+.menu-toggle .bar {
+  height: 3px;
+  width: 100%;
+  background-color: var(--pure-white);
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+/* Hamburger Animation */
+.menu-toggle.open .bar:nth-child(1) {
+  transform: translateY(9px) rotate(45deg);
+}
+
+.menu-toggle.open .bar:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-toggle.open .bar:nth-child(3) {
+  transform: translateY(-9px) rotate(-45deg);
+}
+
+/* Responsive Nav Links */
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: flex;
+  }
+
+  .nav-links {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgba(5, 8, 16, 0.95);
+    backdrop-filter: blur(20px);
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    transform: translateY(-100%);
+    transition: transform 0.5s var(--ease-premium);
+    z-index: 101;
+  }
+
+  .nav-links.mobile-open {
+    transform: translateY(0);
+  }
+
+  .nav-link {
+    font-size: var(--text-lg);
+  }
+}
+
+/* Register Button with Shimmer */
+.btn-register-nav {
+  padding: 0.6rem 1.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--gold-bronze);
+  color: var(--gold-bright);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s var(--ease-premium);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-register-nav:hover {
+  background: var(--gold-mid);
+  color: #000;
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 15px rgba(191, 149, 63, 0.4);
+}
+
+/* Shimmer Animation */
+.btn-register-nav::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.4), 
+    transparent
+  );
+  transform: skewX(-20deg);
+  animation: shimmer 5s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -150%; }
+  10% { left: 150%; } /* Fast pass */
+  100% { left: 150%; } /* Wait */
+}
+
+/* 3. Section Wrapper with Slide-In */
+.section-wrapper {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-lg) var(--space-lg);
+  min-height: 80vh; /* Ensure scroll space */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  
+  /* Initial State: Hidden & Shifted */
+  opacity: 0;
+  transform: translateY(60px);
+  transition: opacity 1.2s var(--ease-premium), transform 1.2s var(--ease-premium);
+  will-change: opacity, transform;
+}
+
+.section-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--frosted-silver);
+  padding: var(--space-xl) var(--space-lg);
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(10px);
+  text-align: center;
+  position: relative;
+  z-index: 10;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.social-link {
+  color: var(--frosted-silver);
+  transition: color 0.3s;
+  cursor: pointer;
+}
+.social-link:hover {
+  color: var(--gold-bronze);
+}

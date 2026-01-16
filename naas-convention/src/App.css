@@ -1,0 +1,232 @@
+/* Global CSS Architecture - NAAS Quad-Zonal Convention */
+
+/* 3. Typography & Tone - Imports */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Open+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  /* 1. Color Variable Extraction */
+  
+  /* Deep Cosmic: Multi-layered dark blue/black */
+  --deep-cosmic-bg: radial-gradient(circle at 50% 50%, #1a1f35 0%, #050810 100%);
+  --deep-cosmic-solid: #050810;
+  
+  /* Success Gold: Metallic Gradient Palette */
+  --gold-bronze: #bf953f;
+  --gold-bright: #fcf6ba;
+  --gold-mid: #b38728;
+  --gold-gradient: linear-gradient(135deg, #bf953f 0%, #fcf6ba 40%, #b38728 100%);
+  --gold-text-gradient: linear-gradient(to bottom, #f9df7b, #b38728);
+
+  /* Pure White & Frosted Silver */
+  --pure-white: #ffffff;
+  --frosted-silver: rgba(255, 255, 255, 0.15);
+  --glass-highlight: rgba(255, 255, 255, 0.1);
+  
+  /* 3. Typography Variables */
+  --font-heading: 'Syne', sans-serif;
+  --font-body: 'Open Sans', sans-serif;
+  
+  /* Fluid Typography */
+  --text-xs: clamp(0.75rem, 1vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 1.2vw, 1rem);
+  --text-base: clamp(1rem, 1.5vw, 1.125rem);
+  --text-lg: clamp(1.25rem, 2vw, 1.5rem);
+  --text-xl: clamp(1.5rem, 3vw, 2rem);
+  --text-2xl: clamp(2rem, 4vw, 3rem);
+  --text-3xl: clamp(2.5rem, 5vw, 4rem);
+  
+  /* Spacing */
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+
+  /* Animation */
+  --ease-premium: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-magnetic: cubic-bezier(0.33, 1, 0.68, 1);
+  --shadow-soft: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Global Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--deep-cosmic-bg);
+  background-attachment: fixed; /* Parallax-like feel */
+  color: var(--pure-white);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-md);
+  color: var(--pure-white);
+}
+
+/* 2. Glassmorphism Framework */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.2); /* Subtle light catch */
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-lg);
+  transition: transform 0.4s var(--ease-premium), box-shadow 0.4s var(--ease-premium);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  /* Subtle radial gradient to prevent flat look */
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at top left, rgba(255,255,255,0.05), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glass-card:hover {
+  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.7);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 768px) {
+  .glass-card {
+    backdrop-filter: blur(8px); /* Reduce blur cost on mobile */
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(20, 25, 40, 0.7); /* Darker, more opaque fallback */
+  }
+}
+
+/* Text Gradients */
+.text-gold-gradient {
+  background: var(--gold-text-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+}
+
+/* 4. Mascot Placeholder Glow */
+.mascot-glow-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 300px;
+  height: 300px;
+  margin: var(--space-xl) auto;
+}
+
+.mascot-glow {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  background: var(--gold-mid);
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.6;
+  animation: pulse-glow 4s infinite alternate var(--ease-premium);
+}
+
+@keyframes pulse-glow {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(1.2); opacity: 0.7; }
+}
+
+.mascot-placeholder {
+  position: relative;
+  z-index: 1;
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--frosted-silver);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  color: var(--gold-bright);
+  font-weight: bold;
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  box-shadow: 0 0 30px rgba(191, 149, 63, 0.2);
+}
+
+/* UI Components */
+.btn-top-notch {
+  background: var(--gold-gradient);
+  border: none;
+  color: #000; /* Contrast against gold */
+  padding: 1rem 2.5rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 50px; /* Pill shape */
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s var(--ease-premium), filter 0.3s;
+  box-shadow: 0 4px 15px rgba(179, 135, 40, 0.4);
+}
+
+.btn-top-notch::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: 0.5s;
+}
+
+.btn-top-notch:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+.btn-top-notch:hover::after {
+  left: 100%;
+}
+
+.grid-showcase {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+}
+
+.color-swatch {
+  width: 100%;
+  height: 80px;
+  border-radius: 8px;
+  margin-bottom: var(--space-sm);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: var(--text-xs);
+  color: var(--pure-white);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
