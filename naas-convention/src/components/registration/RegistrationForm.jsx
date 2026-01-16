@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import './Registration.css';
 
 const RegistrationForm = () => {
@@ -13,21 +12,29 @@ const RegistrationForm = () => {
     institution: '',
     zone: 'Enugu', 
     skill: 'Graphic Design',
-    wantsTshirt: false,
     tshirtSize: 'M', 
     healthConcerns: '',
   });
 
-  const [totalAmount, setTotalAmount] = useState(10000);
+  // Fixed Registration Fee
+  const totalAmount = 13000;
+  
   const [touched, setTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Dynamic Pricing Logic
+  // Load Flutterwave Script
   useEffect(() => {
-    setTotalAmount(formData.wantsTshirt ? 12500 : 10000);
-  }, [formData.wantsTshirt]);
+    const script = document.createElement('script');
+    script.src = 'https://checkout.flutterwave.com/v3.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -56,30 +63,10 @@ const RegistrationForm = () => {
           formData.institution && 
           formData.zone && 
           formData.skill && 
-          formData.gender
+          formData.gender &&
+          formData.tshirtSize
       );
   };
-
-  // Flutterwave Config
-  const flutterwaveConfig = {
-    public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
-    tx_ref: Date.now(),
-    amount: totalAmount,
-    currency: 'NGN',
-    payment_options: 'card,mobilemoney,ussd',
-    customer: {
-      email: formData.email,
-      phone_number: formData.phone,
-      name: formData.fullName,
-    },
-    customizations: {
-      title: 'NAAS Convention Registration',
-      description: 'Payment for Convention Delegate Fee',
-      logo: 'https://st2.depositphotos.com/4403291/7418/v/450/depositphotos_74189661-stock-illustration-online-shop-log.jpg',
-    },
-  };
-
-  const handleFlutterwavePayment = useFlutterwave(flutterwaveConfig);
 
   const saveToSupabase = async (paymentResponse) => {
     setErrorMsg('');
@@ -91,28 +78,7 @@ const RegistrationForm = () => {
     }
 
     try {
-        // 1. Anti-Duplicate Check (Fail-safe)
-        try {
-            const { data: existingUser, error: searchError } = await supabase
-            .from('registrations')
-            .select('id')
-            .eq('full_name', formData.fullName)
-            .eq('institution', formData.institution)
-            .single();
-
-            if (searchError && searchError.code !== 'PGRST116') { 
-                console.warn("Duplicate check failed (likely auth/RLS), proceeding anyway:", searchError);
-            } else if (existingUser) {
-                throw new Error("Duplicate registration detected for this name and institution.");
-            }
-        } catch (dupError) {
-            if (dupError.message.includes("Duplicate registration")) {
-                throw dupError;
-            }
-            console.warn("Skipping duplicate check due to error:", dupError);
-        }
-
-        // 2. Insert Data
+        // Insert Data
         const { error } = await supabase
             .from('registrations')
             .insert([
@@ -125,10 +91,11 @@ const RegistrationForm = () => {
                 institution: formData.institution,
                 zone: formData.zone,
                 skill_choice: formData.skill,
-                tshirt_size: formData.wantsTshirt ? formData.tshirtSize : null,
+                tshirt_size: formData.tshirtSize,
                 health_concerns: formData.healthConcerns,
                 total_amount: totalAmount,
-                payment_status: 'paid_via_flutterwave' // Updated status
+                payment_status: 'paid_via_flutterwave',
+                transaction_id: paymentResponse.transaction_id || paymentResponse.flw_ref || 'N/A'
             },
             ]);
 
@@ -139,10 +106,69 @@ const RegistrationForm = () => {
         
     } catch (error) {
         console.error('Submission error:', error);
-        let message = 'Registration failed, but payment was successful. Please contact support.';
+        let message = 'Registration failed, but payment was successful. Please contact support with your payment receipt.';
         if (error.message) message = error.message;
         setErrorMsg(message);
     } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  const checkDuplicateAndPay = async () => {
+    setIsSubmitting(true);
+    setErrorMsg('');
+
+    try {
+         // 1. Anti-Duplicate Check
+         const { data: existingUser, error: searchError } = await supabase
+         .from('registrations')
+         .select('id')
+         .eq('full_name', formData.fullName)
+         .eq('institution', formData.institution)
+         .single();
+
+         if (searchError && searchError.code !== 'PGRST116') { 
+             console.warn("Duplicate check warning:", searchError);
+         } else if (existingUser) {
+             throw new Error("Duplicate registration detected for this name and institution.");
+         }
+
+         // 2. Trigger Flutterwave
+         if (!window.FlutterwaveCheckout) {
+             throw new Error("Payment gateway not loaded. Please refresh the page.");
+         }
+
+         window.FlutterwaveCheckout({
+            public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
+            tx_ref: Date.now(),
+            amount: totalAmount,
+            currency: 'NGN',
+            payment_options: 'card,mobilemoney,ussd',
+            customer: {
+              email: formData.email,
+              phone_number: formData.phone,
+              name: formData.fullName,
+            },
+            customizations: {
+              title: 'NAAS Convention Registration',
+              description: 'Delegate Fee Payment',
+              logo: 'https://st2.depositphotos.com/4403291/7418/v/450/depositphotos_74189661-stock-illustration-online-shop-log.jpg',
+            },
+            callback: (data) => {
+                console.log("Payment Success:", data);
+                // Note: Flutterwave V4 Standard doesn't automatically close like React wrapper might, 
+                // but usually redirects or handles it. We just need to save.
+                saveToSupabase(data);
+            },
+            onclose: () => {
+                setIsSubmitting(false);
+                console.log('Payment modal closed');
+            }
+          });
+
+    } catch (err) {
+        console.error("Pre-payment check failed:", err);
+        setErrorMsg(err.message);
         setIsSubmitting(false);
     }
   };
@@ -153,26 +179,13 @@ const RegistrationForm = () => {
 
     if (!isFormValid()) {
       setTouched({
-        fullName: true, email: true, phone: true, department: true, institution: true, zone: true, skill: true
+        fullName: true, email: true, phone: true, department: true, institution: true, zone: true, skill: true, tshirtSize: true
       });
       setErrorMsg('Please fill in all required fields.');
       return;
     }
 
-    setIsSubmitting(true);
-
-    // Trigger Flutterwave
-    handleFlutterwavePayment({
-      callback: (response) => {
-         console.log("Payment Success:", response);
-         closePaymentModal(); // this will close the modal programmatically
-         saveToSupabase(response);
-      },
-      onClose: () => {
-         setIsSubmitting(false);
-         console.log('Payment modal closed');
-      },
-    });
+    checkDuplicateAndPay();
   };
 
   if (isSuccess) {
@@ -184,7 +197,7 @@ const RegistrationForm = () => {
                   <p>Your payment and registration are confirmed.</p>
                   <button 
                     className="cyber-btn" 
-                    onClick={() => { setIsSuccess(false); setFormData({...formData, fullName: ''}); }}
+                    onClick={() => { setIsSuccess(false); setFormData({...formData, fullName: '', healthConcerns: ''}); }}
                     style={{ marginTop: '2rem' }}
                   >
                       Register Another Delegate
@@ -350,58 +363,52 @@ const RegistrationForm = () => {
                 <label className="input-label" style={{ top: '-12px', fontSize: '12px', color: '#ffd700' }}>Skill Acquisition</label>
             </div>
             
-            
-
-            {/* T-Shirt Toggle */}
-            <div className="toggle-container">
-                <div className="toggle-label">
-                    <span className="toggle-title">Include T-Shirt?</span>
-                    <span className="toggle-price">
-                        {formData.wantsTshirt ? '+ ₦2,500' : 'No Thanks'}
-                    </span>
-                </div>
-                <div>
-                    <input 
-                        type="checkbox" 
-                        id="tshirt-switch" 
-                        className="switch-checkbox"
-                        name="wantsTshirt"
-                        checked={formData.wantsTshirt}
-                        onChange={handleChange}
-                    />
-                    <label htmlFor="tshirt-switch" className="switch-label">Toggle</label>
-                </div>
+            {/* T-Shirt Size - Always Visible */}
+            <div className="input-container">
+                <select 
+                    name="tshirtSize" 
+                    className={`input-field has-value`}
+                    value={formData.tshirtSize}
+                    onChange={handleChange}
+                    required 
+                >
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                    <option value="XXL">XXL</option>
+                    <option value="XXXL">XXXL</option>
+                </select>
+                <label className="input-label" style={{ top: '-12px', fontSize: '12px', color: '#ffd700' }}>T-Shirt Size (Required)</label>
             </div>
 
-            {/* T-Shirt Size - Only if selected */}
-            {formData.wantsTshirt && (
-                <div className="input-container">
-                    <select 
-                        name="tshirtSize" 
-                        className={`input-field has-value`}
-                        value={formData.tshirtSize}
-                        onChange={handleChange}
-                        required 
-                    >
-                        <option value="S">S</option>
-                        <option value="M">M</option>
-                        <option value="L">L</option>
-                        <option value="XL">XL</option>
-                        <option value="XXL">XXL</option>
-                        <option value="XXXL">XXXL</option>
-                    </select>
-                    <label className="input-label" style={{ top: '-12px', fontSize: '12px', color: '#ffd700' }}>T-Shirt Size</label>
-                </div>
-            )}
+             {/* Health Concerns */}
+             <div className="input-container">
+                <textarea 
+                    name="healthConcerns" 
+                    className={`input-field ${formData.healthConcerns ? 'has-value' : ''}`}
+                    value={formData.healthConcerns}
+                    onChange={handleChange}
+                    rows="2"
+                ></textarea>
+                <label className="input-label">Health Concerns (Optional)</label>
+            </div>
 
             {/* Total Display */}
             <div className="total-counter">
-                <span className="currency">₦</span>
-                <span>{totalAmount.toLocaleString()}</span>
+                <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                     <div>
+                        <span className="currency">₦</span>
+                        <span>{totalAmount.toLocaleString()}</span>
+                     </div>
+                     <span style={{fontSize: '1rem', color: '#ffd700', marginTop: '0.5rem', fontWeight: 'normal', textShadow: 'none', letterSpacing: '1px'}}>
+                        (Includes Official Convention T-Shirt)
+                     </span>
+                </div>
             </div>
 
             <button type="submit" className="cyber-btn" disabled={!isFormValid() || isSubmitting}>
-                {isSubmitting ? 'Processing Payment...' : `Pay ₦${totalAmount.toLocaleString()} via Flutterwave`}
+                {isSubmitting ? 'Processing Payment...' : `Register & Pay ₦${totalAmount.toLocaleString()}`}
             </button>
         </div>
       </form>
