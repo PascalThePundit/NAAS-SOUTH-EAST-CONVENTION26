@@ -2,13 +2,13 @@
 
 .hero-container {
   position: relative;
-  min-height: 100vh;
+  min-height: 90vh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start; /* Align to top instead of center */
   align-items: center;
   overflow: hidden;
-  padding: var(--space-lg) var(--space-lg);
+  padding: 3rem var(--space-lg) 4rem; /* 3rem top padding creates that "very small gap" */
   /* Fallback background */
   background: radial-gradient(circle at 50% 50%, transparent 0%, transparent 100%); 
 }

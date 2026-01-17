@@ -83,7 +83,7 @@ const RegistrationForm = () => {
     setErrorMsg('');
 
     try {
-         // 1. Anti-Duplicate Check
+         // 1. Anti-Duplicate Check (Fix 2: Try/Catch with 401 handling)
          try {
              const { data: existingUser, error: searchError } = await supabase
              .from('registrations')
@@ -92,8 +92,14 @@ const RegistrationForm = () => {
              .eq('institution', formData.institution)
              .single();
 
-             if (searchError && searchError.code !== 'PGRST116') { 
-                 console.warn("Duplicate check warning:", searchError);
+             if (searchError) {
+                 // If it's a 401 (Unauthorized) or 403, we assume policy check failed and proceed
+                 if (searchError.status === 401 || searchError.status === 403) {
+                     console.warn("Duplicate check skipped due to permission (401/403). Assuming no duplicate.");
+                 } else if (searchError.code !== 'PGRST116') { 
+                     // PGRST116 is "no rows found", which is good
+                     console.warn("Duplicate check warning:", searchError);
+                 }
              } else if (existingUser) {
                  throw new Error("Duplicate registration detected for this name and institution.");
              }
@@ -102,8 +108,8 @@ const RegistrationForm = () => {
              if (dupError.message.includes("Duplicate registration")) {
                  throw dupError;
              }
-             // Otherwise, just warn and proceed (don't block payment if check fails)
-             console.warn("Duplicate check skipped due to error:", dupError);
+             // Otherwise, just log and proceed
+             console.warn("Duplicate check error caught:", dupError);
          }
 
          // 2. Trigger Flutterwave
@@ -113,7 +119,7 @@ const RegistrationForm = () => {
 
          const config = {
             public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
-            tx_ref: Date.now(),
+            tx_ref: Date.now().toString(),
             amount: totalAmount,
             currency: 'NGN',
             payment_options: 'card,mobilemoney,ussd',
@@ -128,10 +134,10 @@ const RegistrationForm = () => {
               logo: 'https://st2.depositphotos.com/4403291/7418/v/450/depositphotos_74189661-stock-illustration-online-shop-log.jpg',
             },
             callback: async function (response) {
-                // Fix 2 & 4: Log full response
-                console.log("Full Flutterwave Response:", JSON.stringify(response, null, 2));
+                // Fix 3: Log full response
+                console.log('Full Payment Response:', response);
                 
-                // Fix 2: Relaxed success check
+                // Fix 3: Case-insensitive success/completed check
                 const status = response.status ? response.status.toLowerCase() : '';
                 if (status === 'successful' || status === 'completed') {
                     // 3. Save to Supabase (Success Callback Logic)
@@ -154,11 +160,10 @@ const RegistrationForm = () => {
                                 payment_status: 'paid',
                                 transaction_id: response.transaction_id || response.flw_ref || 'N/A'
                             },
-                            ]); // No .select() to avoid RLS issues if policy is missing
+                            ]);
 
                         if (error) {
                             console.error("Supabase Error:", error);
-                            // Fix 4: Handle Supabase error explicitly in alert
                             alert("Payment successful but registration failed to save: " + error.message);
                             throw error;
                         }
@@ -183,7 +188,6 @@ const RegistrationForm = () => {
             }
           };
 
-          // Fix 3: Ignore FLW-Events 400 errors in Test Mode
           window.FlutterwaveCheckout(config);
 
     } catch (err) {
