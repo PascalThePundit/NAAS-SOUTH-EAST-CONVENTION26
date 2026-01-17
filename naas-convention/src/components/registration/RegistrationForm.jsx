@@ -49,15 +49,24 @@ const RegistrationForm = () => {
     setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
+  const validateEmail = (email) => {
+    // Simple, robust email regex that allows standard emails
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(String(email).toLowerCase());
+  };
+
   const isValid = (name) => {
       if (!touched[name]) return true; 
+      if (name === 'email') {
+          return formData.email && validateEmail(formData.email);
+      }
       return formData[name] && formData[name].toString().trim() !== '';
   };
   
   const isFormValid = () => {
       return (
           formData.fullName && 
-          formData.email && 
+          formData.email && validateEmail(formData.email) &&
           formData.phone && 
           formData.department && 
           formData.institution && 
@@ -65,53 +74,8 @@ const RegistrationForm = () => {
           formData.skill && 
           formData.gender &&
           formData.tshirtSize
+          // healthConcerns is no longer required
       );
-  };
-
-  const saveToSupabase = async (paymentResponse) => {
-    setErrorMsg('');
-    
-    if (!supabase) {
-      setErrorMsg('System Error: Database connection not initialized.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    try {
-        // Insert Data
-        const { error } = await supabase
-            .from('registrations')
-            .insert([
-            {
-                full_name: formData.fullName,
-                gender: formData.gender,
-                email: formData.email,
-                phone: formData.phone,
-                department: formData.department,
-                institution: formData.institution,
-                zone: formData.zone,
-                skill_choice: formData.skill,
-                tshirt_size: formData.tshirtSize,
-                health_concerns: formData.healthConcerns,
-                total_amount: totalAmount,
-                payment_status: 'paid_via_flutterwave',
-                transaction_id: paymentResponse.transaction_id || paymentResponse.flw_ref || 'N/A'
-            },
-            ]);
-
-        if (error) throw error;
-
-        console.log('Registration successful');
-        setIsSuccess(true);
-        
-    } catch (error) {
-        console.error('Submission error:', error);
-        let message = 'Registration failed, but payment was successful. Please contact support with your payment receipt.';
-        if (error.message) message = error.message;
-        setErrorMsg(message);
-    } finally {
-        setIsSubmitting(false);
-    }
   };
 
   const checkDuplicateAndPay = async () => {
@@ -120,17 +84,26 @@ const RegistrationForm = () => {
 
     try {
          // 1. Anti-Duplicate Check
-         const { data: existingUser, error: searchError } = await supabase
-         .from('registrations')
-         .select('id')
-         .eq('full_name', formData.fullName)
-         .eq('institution', formData.institution)
-         .single();
+         try {
+             const { data: existingUser, error: searchError } = await supabase
+             .from('registrations')
+             .select('id')
+             .eq('full_name', formData.fullName)
+             .eq('institution', formData.institution)
+             .single();
 
-         if (searchError && searchError.code !== 'PGRST116') { 
-             console.warn("Duplicate check warning:", searchError);
-         } else if (existingUser) {
-             throw new Error("Duplicate registration detected for this name and institution.");
+             if (searchError && searchError.code !== 'PGRST116') { 
+                 console.warn("Duplicate check warning:", searchError);
+             } else if (existingUser) {
+                 throw new Error("Duplicate registration detected for this name and institution.");
+             }
+         } catch (dupError) {
+             // If we explicitly threw the duplicate error, stop everything
+             if (dupError.message.includes("Duplicate registration")) {
+                 throw dupError;
+             }
+             // Otherwise, just warn and proceed (don't block payment if check fails)
+             console.warn("Duplicate check skipped due to error:", dupError);
          }
 
          // 2. Trigger Flutterwave
@@ -138,7 +111,7 @@ const RegistrationForm = () => {
              throw new Error("Payment gateway not loaded. Please refresh the page.");
          }
 
-         window.FlutterwaveCheckout({
+         const config = {
             public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
             tx_ref: Date.now(),
             amount: totalAmount,
@@ -154,17 +127,64 @@ const RegistrationForm = () => {
               description: 'Delegate Fee Payment',
               logo: 'https://st2.depositphotos.com/4403291/7418/v/450/depositphotos_74189661-stock-illustration-online-shop-log.jpg',
             },
-            callback: (data) => {
-                console.log("Payment Success:", data);
-                // Note: Flutterwave V4 Standard doesn't automatically close like React wrapper might, 
-                // but usually redirects or handles it. We just need to save.
-                saveToSupabase(data);
+            callback: async function (response) {
+                // Fix 2 & 4: Log full response
+                console.log("Full Flutterwave Response:", JSON.stringify(response, null, 2));
+                
+                // Fix 2: Relaxed success check
+                const status = response.status ? response.status.toLowerCase() : '';
+                if (status === 'successful' || status === 'completed') {
+                    // 3. Save to Supabase (Success Callback Logic)
+                    try {
+                        const { error } = await supabase
+                            .from('registrations')
+                            .insert([
+                            {
+                                full_name: formData.fullName,
+                                gender: formData.gender,
+                                email: formData.email,
+                                phone: formData.phone,
+                                department: formData.department,
+                                institution: formData.institution,
+                                zone: formData.zone,
+                                skill_choice: formData.skill,
+                                tshirt_size: formData.tshirtSize,
+                                health_concerns: formData.healthConcerns,
+                                total_amount: totalAmount,
+                                payment_status: 'paid',
+                                transaction_id: response.transaction_id || response.flw_ref || 'N/A'
+                            },
+                            ]); // No .select() to avoid RLS issues if policy is missing
+
+                        if (error) {
+                            console.error("Supabase Error:", error);
+                            // Fix 4: Handle Supabase error explicitly in alert
+                            alert("Payment successful but registration failed to save: " + error.message);
+                            throw error;
+                        }
+
+                        console.log('Registration saved to Supabase');
+                        setIsSuccess(true);
+                    } catch (dbError) {
+                        console.error('Database Save Failed:', dbError);
+                        let dbMsg = dbError.message || JSON.stringify(dbError);
+                        setErrorMsg(`Payment successful, but registration data failed to save: ${dbMsg}. Please contact support.`);
+                    }
+                } else {
+                    console.warn("Payment not successful:", response);
+                    setErrorMsg('Payment failed or cancelled.');
+                }
             },
-            onclose: () => {
-                setIsSubmitting(false);
-                console.log('Payment modal closed');
+            onclose: function() {
+                if (!isSuccess) {
+                   setIsSubmitting(false);
+                   console.log('Payment modal closed');
+                }
             }
-          });
+          };
+
+          // Fix 3: Ignore FLW-Events 400 errors in Test Mode
+          window.FlutterwaveCheckout(config);
 
     } catch (err) {
         console.error("Pre-payment check failed:", err);
@@ -181,7 +201,7 @@ const RegistrationForm = () => {
       setTouched({
         fullName: true, email: true, phone: true, department: true, institution: true, zone: true, skill: true, tshirtSize: true
       });
-      setErrorMsg('Please fill in all required fields.');
+      setErrorMsg('Please fill in all required fields correctly.');
       return;
     }
 
@@ -382,13 +402,14 @@ const RegistrationForm = () => {
                 <label className="input-label" style={{ top: '-12px', fontSize: '12px', color: '#ffd700' }}>T-Shirt Size (Required)</label>
             </div>
 
-             {/* Health Concerns */}
+             {/* Health Concerns - Optional Again */}
              <div className="input-container">
                 <textarea 
                     name="healthConcerns" 
                     className={`input-field ${formData.healthConcerns ? 'has-value' : ''}`}
                     value={formData.healthConcerns}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     rows="2"
                 ></textarea>
                 <label className="input-label">Health Concerns (Optional)</label>
