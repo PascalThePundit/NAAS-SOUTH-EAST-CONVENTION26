@@ -45,7 +45,7 @@ function App() {
         <div style={{ textAlign: 'center', maxWidth: '100%', margin: '0 auto' }}>
           <h2>Ready to Ascend?</h2>
           <p style={{ marginBottom: 'var(--space-xl)' }}>
-            Secure your spot. Limited tickets available.
+            Secure your spot. Open to all.
           </p>
           
           <div style={{ display: 'flex', justifyContent: 'center' }}>

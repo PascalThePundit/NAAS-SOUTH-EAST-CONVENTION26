@@ -378,22 +378,39 @@ const RegistrationForm = () => {
                 <label className="input-label">Health Concerns (Optional)</label>
             </div>
 
-            {/* Receipt Upload */}
-            <div className="input-container" style={{ marginTop: '1.5rem', border: '1px dashed #ffd700', padding: '1rem', borderRadius: '8px' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#ffd700', fontSize: '0.9rem' }}>
-                    Upload Proof of Payment (Local Chapter Receipt) *
-                </label>
+            {/* Receipt Upload - Styled */}
+            <div className="file-upload-container">
                 <input 
                     type="file" 
-                    name="receipt" 
+                    id="receipt-upload" 
+                    className="file-upload-input"
                     accept=".pdf, .png, .jpg, .jpeg"
                     onChange={handleChange}
                     required
-                    style={{ color: '#fff' }}
                 />
-                <p style={{ color: '#aaa', fontSize: '0.8rem', marginTop: '0.5rem' }}>
-                    Allowed Formats: .pdf, .png, .jpg, .jpeg
-                </p>
+                <label htmlFor="receipt-upload" className={`file-upload-label ${receiptFile ? 'has-file' : ''}`}>
+                     <div className="upload-icon-wrapper">
+                        {receiptFile ? (
+                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                             </svg>
+                        ) : (
+                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffd700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                             </svg>
+                        )}
+                     </div>
+                     <div className="upload-text-content">
+                        <span className="upload-main-text">
+                            {receiptFile ? 'Receipt Selected' : 'Upload Proof of Payment'}
+                        </span>
+                        <span className="upload-sub-text">
+                            {receiptFile ? receiptFile.name : 'Click to browse (PDF, JPG, PNG)'}
+                        </span>
+                     </div>
+                </label>
             </div>
 
             {/* Total Display */}
