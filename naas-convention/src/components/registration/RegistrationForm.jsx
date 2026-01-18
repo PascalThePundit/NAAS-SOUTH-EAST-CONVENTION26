@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import './Registration.css';
 
@@ -16,6 +16,8 @@ const RegistrationForm = () => {
     healthConcerns: '',
   });
 
+  const [receiptFile, setReceiptFile] = useState(null);
+
   // Fixed Registration Fee
   const totalAmount = 13000;
   
@@ -24,24 +26,17 @@ const RegistrationForm = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Load Flutterwave Script
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.flutterwave.com/v3.js';
-    script.async = true;
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    const { name, value, type, checked, files } = e.target;
+    
+    if (type === 'file') {
+      setReceiptFile(files[0]);
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value,
+      }));
+    }
   };
   
   const handleBlur = (e) => {
@@ -73,18 +68,28 @@ const RegistrationForm = () => {
           formData.zone && 
           formData.skill && 
           formData.gender &&
-          formData.tshirtSize
-          // healthConcerns is no longer required
+          formData.tshirtSize &&
+          receiptFile // Receipt is required
       );
   };
 
-  const checkDuplicateAndPay = async () => {
-    setIsSubmitting(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setErrorMsg('');
 
+    if (!isFormValid()) {
+      setTouched({
+        fullName: true, email: true, phone: true, department: true, institution: true, zone: true, skill: true, tshirtSize: true
+      });
+      setErrorMsg('Please fill in all required fields and upload the payment receipt.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-         // 1. Anti-Duplicate Check (Fix 2: Try/Catch with 401 handling)
-         try {
+        // 1. Check for duplicate registration
+        try {
              const { data: existingUser, error: searchError } = await supabase
              .from('registrations')
              .select('id')
@@ -93,135 +98,90 @@ const RegistrationForm = () => {
              .single();
 
              if (searchError) {
-                 // If it's a 401 (Unauthorized) or 403, we assume policy check failed and proceed
-                 if (searchError.status === 401 || searchError.status === 403) {
-                     console.warn("Duplicate check skipped due to permission (401/403). Assuming no duplicate.");
-                 } else if (searchError.code !== 'PGRST116') { 
-                     // PGRST116 is "no rows found", which is good
+                 if (searchError.code !== 'PGRST116') { // PGRST116 is "no rows found"
                      console.warn("Duplicate check warning:", searchError);
                  }
              } else if (existingUser) {
                  throw new Error("Duplicate registration detected for this name and institution.");
              }
          } catch (dupError) {
-             // If we explicitly threw the duplicate error, stop everything
              if (dupError.message.includes("Duplicate registration")) {
                  throw dupError;
              }
-             // Otherwise, just log and proceed
              console.warn("Duplicate check error caught:", dupError);
          }
 
-         // 2. Trigger Flutterwave
-         if (!window.FlutterwaveCheckout) {
-             throw new Error("Payment gateway not loaded. Please refresh the page.");
-         }
+        // 2. Upload Receipt
+        const fileExt = receiptFile.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const filePath = `${fileName}`;
 
-         const config = {
-            public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
-            tx_ref: Date.now().toString(),
-            amount: totalAmount,
-            currency: 'NGN',
-            payment_options: 'card,mobilemoney,ussd',
-            customer: {
-              email: formData.email,
-              phone_number: formData.phone,
-              name: formData.fullName,
+        const { error: uploadError } = await supabase.storage
+          .from('receipts')
+          .upload(filePath, receiptFile);
+
+        if (uploadError) {
+          throw new Error(`Receipt upload failed: ${uploadError.message}`);
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('receipts')
+          .getPublicUrl(filePath);
+
+
+        // 3. Save to Supabase
+        const { error: dbError } = await supabase
+            .from('registrations')
+            .insert([
+            {
+                full_name: formData.fullName,
+                gender: formData.gender,
+                email: formData.email,
+                phone: formData.phone,
+                department: formData.department,
+                institution: formData.institution,
+                zone: formData.zone,
+                skill_choice: formData.skill,
+                tshirt_size: formData.tshirtSize,
+                health_concerns: formData.healthConcerns,
+                total_amount: totalAmount,
+                payment_status: 'pending_verification',
+                receipt_url: publicUrl,
+                transaction_id: 'MANUAL_UPLOAD'
             },
-            customizations: {
-              title: 'NAAS Convention Registration',
-              description: 'Delegate Fee Payment',
-              logo: 'https://st2.depositphotos.com/4403291/7418/v/450/depositphotos_74189661-stock-illustration-online-shop-log.jpg',
-            },
-            callback: async function (response) {
-                // Fix 3: Log full response
-                console.log('Full Payment Response:', response);
-                
-                // Fix 3: Case-insensitive success/completed check
-                const status = response.status ? response.status.toLowerCase() : '';
-                if (status === 'successful' || status === 'completed') {
-                    // 3. Save to Supabase (Success Callback Logic)
-                    try {
-                        const { error } = await supabase
-                            .from('registrations')
-                            .insert([
-                            {
-                                full_name: formData.fullName,
-                                gender: formData.gender,
-                                email: formData.email,
-                                phone: formData.phone,
-                                department: formData.department,
-                                institution: formData.institution,
-                                zone: formData.zone,
-                                skill_choice: formData.skill,
-                                tshirt_size: formData.tshirtSize,
-                                health_concerns: formData.healthConcerns,
-                                total_amount: totalAmount,
-                                payment_status: 'paid',
-                                transaction_id: response.transaction_id || response.flw_ref || 'N/A'
-                            },
-                            ]);
+            ]);
 
-                        if (error) {
-                            console.error("Supabase Error:", error);
-                            alert("Payment successful but registration failed to save: " + error.message);
-                            throw error;
-                        }
+        if (dbError) {
+            throw new Error(`Registration save failed: ${dbError.message}`);
+        }
 
-                        console.log('Registration saved to Supabase');
-                        setIsSuccess(true);
-                    } catch (dbError) {
-                        console.error('Database Save Failed:', dbError);
-                        let dbMsg = dbError.message || JSON.stringify(dbError);
-                        setErrorMsg(`Payment successful, but registration data failed to save: ${dbMsg}. Please contact support.`);
-                    }
-                } else {
-                    console.warn("Payment not successful:", response);
-                    setErrorMsg('Payment failed or cancelled.');
-                }
-            },
-            onclose: function() {
-                if (!isSuccess) {
-                   setIsSubmitting(false);
-                   console.log('Payment modal closed');
-                }
-            }
-          };
-
-          window.FlutterwaveCheckout(config);
+        console.log('Registration saved successfully');
+        setIsSuccess(true);
 
     } catch (err) {
-        console.error("Pre-payment check failed:", err);
+        console.error("Submission failed:", err);
         setErrorMsg(err.message);
         setIsSubmitting(false);
     }
-  };
-
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-    setErrorMsg('');
-
-    if (!isFormValid()) {
-      setTouched({
-        fullName: true, email: true, phone: true, department: true, institution: true, zone: true, skill: true, tshirtSize: true
-      });
-      setErrorMsg('Please fill in all required fields correctly.');
-      return;
-    }
-
-    checkDuplicateAndPay();
   };
 
   if (isSuccess) {
       return (
           <div className="registration-wrapper">
               <div className="glass-card-ui" style={{ textAlign: 'center', maxWidth: '500px' }}>
-                  <h2 style={{ color: '#ffd700', marginBottom: '1rem' }}>Success!</h2>
+                  <h2 style={{ color: '#ffd700', marginBottom: '1rem' }}>Registration Submitted</h2>
                   <p>Welcome to the NAAS Convention.</p>
-                  <p>Your payment and registration are confirmed.</p>
+                  <p>Your registration is pending verification.</p>
+                  <p style={{ marginTop: '1rem', color: '#ccc' }}>
+                      Please join the WhatsApp group for updates on your registration status.
+                  </p>
                   <button 
                     className="cyber-btn" 
-                    onClick={() => { setIsSuccess(false); setFormData({...formData, fullName: '', healthConcerns: ''}); }}
+                    onClick={() => { 
+                        setIsSuccess(false); 
+                        setFormData({...formData, fullName: '', healthConcerns: ''}); 
+                        setReceiptFile(null);
+                    }}
                     style={{ marginTop: '2rem' }}
                   >
                       Register Another Delegate
@@ -234,8 +194,7 @@ const RegistrationForm = () => {
   return (
     <div className="registration-wrapper">
 
-      <form className="glass-card-ui" onSubmit={handleFormSubmit} noValidate>
-        {/* ... form content ... */}
+      <form className="glass-card-ui" onSubmit={handleSubmit} noValidate>
         <div className="form-content">
             <h2 style={{ textAlign: 'center', marginBottom: '1rem', color: '#fff', textTransform: 'uppercase', letterSpacing: '2px' }}>
               Delegate Registration
@@ -419,6 +378,24 @@ const RegistrationForm = () => {
                 <label className="input-label">Health Concerns (Optional)</label>
             </div>
 
+            {/* Receipt Upload */}
+            <div className="input-container" style={{ marginTop: '1.5rem', border: '1px dashed #ffd700', padding: '1rem', borderRadius: '8px' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#ffd700', fontSize: '0.9rem' }}>
+                    Upload Proof of Payment (Local Chapter Receipt) *
+                </label>
+                <input 
+                    type="file" 
+                    name="receipt" 
+                    accept=".pdf, .png, .jpg, .jpeg"
+                    onChange={handleChange}
+                    required
+                    style={{ color: '#fff' }}
+                />
+                <p style={{ color: '#aaa', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                    Allowed Formats: .pdf, .png, .jpg, .jpeg
+                </p>
+            </div>
+
             {/* Total Display */}
             <div className="total-counter">
                 <div className="fee-wrapper">
@@ -427,13 +404,16 @@ const RegistrationForm = () => {
                         <span>{totalAmount.toLocaleString()}</span>
                      </div>
                      <span className="fee-subtitle">
-                        Registration Covers; Access, Accommodation, Convention Materials, T-shirt and much more.
+                        Registration Fee
                      </span>
+                     <div style={{ fontSize: '0.85rem', color: '#ccc', marginTop: '0.5rem', lineHeight: '1.4' }}>
+                        Covers: Programs Access, Accommodation, Convention Materials, T-shirt, and much more.
+                     </div>
                 </div>
             </div>
 
             <button type="submit" className="cyber-btn" disabled={!isFormValid() || isSubmitting}>
-                {isSubmitting ? 'Processing Payment...' : `Register & Pay ₦${totalAmount.toLocaleString()}`}
+                {isSubmitting ? 'Submitting Registration...' : `Submit Registration`}
             </button>
         </div>
       </form>
