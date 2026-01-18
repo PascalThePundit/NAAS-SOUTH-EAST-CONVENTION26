@@ -34,7 +34,7 @@ function App() {
           </p>
           
           <p>
-            This is a focused, practical experience designed to equip students with real skills and a pathway to earning while in school. 
+            This is a focused, practical experience designed to equip students with real skills and a pathway to living for Christ and displaying him in every aspect of their daily lives while in school. 
             Don't just attend an event; step into your future.
           </p>
         </div>

@@ -34,7 +34,7 @@ const Hero = () => {
         {/* Interactive Headers */}
         <div className="hero-title-wrapper">
           <h1 className="hero-title">
-            NAAS South-East<br />Zonal Convention 2026
+            NAAS Quad-Zonal<br />Convention 2026
           </h1>
           <p className="hero-subtitle" style={{ fontStyle: 'italic', maxWidth: '800px' }}>
             "But ye shall receive power, after that the Holy Ghost is come upon you: and ye shall be witnesses unto me..." — Acts 1:8

@@ -4,39 +4,39 @@ import './Schedule.css';
 const scheduleData = [
   { 
     day: 'Day 1', 
-    title: "Arrival & Consecration", 
-    desc: "Registration, Accommodation, and the Opening 'Acts 1:8' Fire Session.",
-    icon: "🔥"
+    title: "Arrival / Accreditation", 
+    desc: "Welcome delegates! Settling in and registration for the Quad-Zonal convention.",
+    icon: "🛄"
   },
   { 
     day: 'Day 2', 
-    title: "The Mental & Spiritual Pillar", 
-    desc: "Morning Devotion, Keynote on Intellectual Growth, and Bible Quiz Competitions.",
-    icon: "🧠"
+    title: "Opening Ceremony / Community Outreach", 
+    desc: "Official commencement and reaching out to the local community with the YES spirit.",
+    icon: "🤝"
   },
   { 
     day: 'Day 3', 
-    title: "The Economic Pillar", 
-    desc: "Intensive Skill Acquisition Labs (Baking, Perfume Making, Digital Marketing, etc.).",
-    icon: "💰"
+    title: "Sabbath Worship", 
+    desc: "A day of spiritual renewal, rest, and corporate worship.",
+    icon: "⛪"
   },
   { 
     day: 'Day 4', 
-    title: "The Physical & Social Pillar", 
-    desc: "Morning Aerobics, Inter-Zonal Sports Competitions, and Zonal Cultural Night.",
-    icon: "🏃"
+    title: "Business Pitch", 
+    desc: "Empowering young entrepreneurs. Presenting innovative ideas for the future.",
+    icon: "💼"
   },
   { 
     day: 'Day 5', 
-    title: "Empowerment & Commissioning", 
-    desc: "Advanced Skill Workshops, Entrepreneurship Seminar, and the Grand 'YES' Night of Favors.",
-    icon: "✨"
+    title: "Music Concert", 
+    desc: "A night of celebration, music, and creative expression.",
+    icon: "🎵"
   },
   { 
     day: 'Day 6', 
-    title: "Departure & Impact", 
-    desc: "Final Breakfast, Exchange of Contacts, and Departure to our various institutions.",
-    icon: "🚌"
+    title: "NAAS Sports Festival / Departure", 
+    desc: "Concluding with athletic competitions and the official closing of the convention.",
+    icon: "🏆"
   },
 ];
 
@@ -47,7 +47,7 @@ const Schedule = () => {
     <div className="schedule-container glass-card">
       <div className="schedule-header">
         <h2 className="text-gold-gradient section-title">Event Schedule</h2>
-        <p className="schedule-tagline">"Growing in Wisdom, Stature, and Favor (Luke 2:52)"</p>
+        <p className="schedule-tagline">Daily Highlights</p>
       </div>
       
       {/* Tabs Navigation */}

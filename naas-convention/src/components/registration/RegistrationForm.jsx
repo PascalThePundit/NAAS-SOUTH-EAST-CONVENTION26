@@ -427,7 +427,7 @@ const RegistrationForm = () => {
                         <span>{totalAmount.toLocaleString()}</span>
                      </div>
                      <span className="fee-subtitle">
-                        (Includes Official Convention T-Shirt)
+                        Registration Covers; Access, Accommodation, Convention Materials, T-shirt and much more.
                      </span>
                 </div>
             </div>

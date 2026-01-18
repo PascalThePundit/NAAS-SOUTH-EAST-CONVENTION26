@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import './layout.css';
+import logo1 from '../../assets/nav-logo-1.png';
+import logo2 from '../../assets/nav-logo-2.png';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -10,12 +12,12 @@ const Navbar = () => {
 
   return (
     <nav className="navbar">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-        <div style={{ display: 'flex', gap: '5px' }}>
-            <div style={{ width: '30px', height: '30px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'var(--frosted-silver)', border: '1px solid rgba(255,255,255,0.2)' }}>N</div>
-            <div style={{ width: '30px', height: '30px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'var(--frosted-silver)', border: '1px solid rgba(255,255,255,0.2)' }}>E</div>
+      <div className="nav-left">
+        <div className="nav-logo-container">
+            <img src={logo1} alt="Logo 1" className="nav-logo-img" />
+            <img src={logo2} alt="Logo 2" className="nav-logo-img" />
         </div>
-        <a href="/" className="nav-brand text-gold-gradient" style={{ fontFamily: 'var(--font-heading)' }}>
+        <a href="/" className="nav-brand text-gold-gradient">
           NAAS Convention
         </a>
       </div>
