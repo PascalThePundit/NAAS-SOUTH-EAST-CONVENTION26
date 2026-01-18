@@ -404,7 +404,7 @@ const RegistrationForm = () => {
                      </div>
                      <div className="upload-text-content">
                         <span className="upload-main-text">
-                            {receiptFile ? 'Receipt Selected' : 'Upload Proof of Payment'}
+                            {receiptFile ? 'Receipt Selected' : 'Upload proof of registration (receipt) paid to your local chapter'}
                         </span>
                         <span className="upload-sub-text">
                             {receiptFile ? receiptFile.name : 'Click to browse (PDF, JPG, PNG)'}
