@@ -36,7 +36,7 @@ const InfoSection = () => {
       <div className="info-container">
         
         <div className="stagger-reveal reveal-up header-group">
-           <h2 className="section-title text-gold-gradient">The Gathering</h2>
+           <h2 className="section-title text-gold-gradient">YES - Young Empowered Students</h2>
            <p className="section-subtitle">April 2nd — 7th, 2026</p>
         </div>
 
