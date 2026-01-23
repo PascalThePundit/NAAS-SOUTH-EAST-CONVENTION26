@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import emailjs from '@emailjs/browser';
 import './Registration.css';
+
+// Initialize EmailJS with the provided Public Key
+emailjs.init("OQJ0VkkQYN3J5RiDi");
 
 const RegistrationForm = () => {
   const [formData, setFormData] = useState({
@@ -24,7 +28,13 @@ const RegistrationForm = () => {
   const [touched, setTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [generatedId, setGeneratedId] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Helper function to generate a unique 6-digit ID
+  const generate6DigitID = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -45,7 +55,6 @@ const RegistrationForm = () => {
   };
 
   const validateEmail = (email) => {
-    // Simple, robust email regex that allows standard emails
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(String(email).toLowerCase());
   };
@@ -69,7 +78,7 @@ const RegistrationForm = () => {
           formData.skill && 
           formData.gender &&
           formData.tshirtSize &&
-          receiptFile // Receipt is required
+          receiptFile 
       );
   };
 
@@ -88,32 +97,47 @@ const RegistrationForm = () => {
     setIsSubmitting(true);
 
     try {
-        // 1. Check for duplicate registration
+        // Step 1: Generate the unique 6-digit transaction_id
+        const newTransactionId = generate6DigitID();
+
+        // Step 2: Duplicate Check (Crucial for Production)
         try {
-             const { data: existingUser, error: searchError } = await supabase
-             .from('registrations')
-             .select('id')
-             .eq('full_name', formData.fullName)
-             .eq('institution', formData.institution)
-             .single();
+            // Check if Email already exists
+            const { data: existingEmail, error: emailError } = await supabase
+                .from('registrations')
+                .select('id')
+                .eq('email', formData.email)
+                .single();
 
-             if (searchError) {
-                 if (searchError.code !== 'PGRST116') { // PGRST116 is "no rows found"
-                     console.warn("Duplicate check warning:", searchError);
-                 }
-             } else if (existingUser) {
-                 throw new Error("Duplicate registration detected for this name and institution.");
-             }
-         } catch (dupError) {
-             if (dupError.message.includes("Duplicate registration")) {
-                 throw dupError;
-             }
-             console.warn("Duplicate check error caught:", dupError);
-         }
+            if (existingEmail) {
+                throw new Error('This email is already registered. Please use a different email or contact support.');
+            }
 
-        // 2. Upload Receipt
+            // Check if Name + Institution combo already exists
+            const { data: existingName, error: nameError } = await supabase
+                .from('registrations')
+                .select('id')
+                .eq('full_name', formData.fullName)
+                .eq('institution', formData.institution)
+                .single();
+
+            if (existingName) {
+                throw new Error('A registration with this name and institution already exists.');
+            }
+        } catch (checkErr) {
+            // Re-throw if it's one of our validation errors
+            if (checkErr.message.includes('already registered') || checkErr.message.includes('already exists')) {
+                throw checkErr;
+            }
+            // Ignore "PGRST116" (no rows found) as it's the expected success case
+            if (checkErr.code !== 'PGRST116') {
+                console.warn("Duplicate check error:", checkErr);
+            }
+        }
+
+        // Step 3: Upload receipt and save data to Supabase
         const fileExt = receiptFile.name.split('.').pop();
-        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const fileName = `${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExt}`;
         const filePath = `${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -128,8 +152,6 @@ const RegistrationForm = () => {
           .from('receipts')
           .getPublicUrl(filePath);
 
-
-        // 3. Save to Supabase
         const { error: dbError } = await supabase
             .from('registrations')
             .insert([
@@ -147,7 +169,7 @@ const RegistrationForm = () => {
                 total_amount: totalAmount,
                 payment_status: 'pending_verification',
                 receipt_url: publicUrl,
-                transaction_id: 'MANUAL_UPLOAD'
+                transaction_id: newTransactionId
             },
             ]);
 
@@ -155,12 +177,37 @@ const RegistrationForm = () => {
             throw new Error(`Registration save failed: ${dbError.message}`);
         }
 
-        console.log('Registration saved successfully');
+        // Step 3: Trigger the email after the Supabase operation is successful
+        try {
+            const templateParams = {
+                full_name: formData.fullName,
+                transaction_id: newTransactionId,
+                // Requirement: Map the form's email input to the key 'to_email'.
+                // This ensures the email is sent to the registrant.
+                to_email: formData.email 
+            };
+            
+            await emailjs.send(
+                'service_ace5z9o',
+                'template_f3kjxeg',
+                templateParams,
+                'OQJ0VkkQYN3J5RiDi'
+            );
+            console.log('Confirmation email sent successfully.');
+        } catch (emailError) {
+            // Requirement: If email fails, catch the error but still show success.
+            console.error('Email sending failed, but registration was successful:', emailError);
+        }
+
+        // Requirement: Show the 'Success' screen with the 6-digit ID.
+        console.log('Registration flow complete.');
+        setGeneratedId(newTransactionId);
         setIsSuccess(true);
 
     } catch (err) {
         console.error("Submission failed:", err);
         setErrorMsg(err.message);
+        window.alert(`Submission Failed: ${err.message}`); 
         setIsSubmitting(false);
     }
   };
@@ -169,20 +216,48 @@ const RegistrationForm = () => {
       return (
           <div className="registration-wrapper">
               <div className="glass-card-ui" style={{ textAlign: 'center', maxWidth: '500px' }}>
-                  <h2 style={{ color: '#ffd700', marginBottom: '1rem' }}>Registration Submitted</h2>
+                  <h2 style={{ color: '#ffd700', marginBottom: '1rem' }}>Registration Successful!</h2>
                   <p>Welcome to the NAAS Convention.</p>
-                  <p>Your registration is pending verification.</p>
-                  <p style={{ marginTop: '1rem', color: '#ccc' }}>
-                      Please join the WhatsApp group for updates on your registration status.
+                  
+                  <div style={{ margin: '1.5rem 0', padding: '1rem', backgroundColor: 'rgba(255, 215, 0, 0.1)', border: '1px solid #ffd700', borderRadius: '8px' }}>
+                    <p style={{ fontWeight: 'bold', color: '#fff', marginBottom: '0.5rem' }}>Your Transaction ID</p>
+                    <h3 style={{ color: '#ffd700', fontSize: '2.5rem', fontWeight: 'bold', letterSpacing: '4px', margin: '0.5rem 0' }}>{generatedId}</h3>
+                    <p style={{ fontSize: '0.9rem' }}>Please keep this ID safe. You will need it for accreditation.</p>
+                  </div>
+
+                  <p style={{ marginBottom: '1.5rem', color: '#eee' }}>
+                      A confirmation email has been sent to your inbox.
                   </p>
+
+                  <a 
+                    href="https://chat.whatsapp.com/IjgWoid4PFBKU7eOOeDHND" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="cyber-btn"
+                    style={{ 
+                        display: 'inline-block', 
+                        textDecoration: 'none', 
+                        marginBottom: '1rem',
+                        backgroundColor: '#25D366', // WhatsApp Green
+                        borderColor: '#25D366',
+                        color: '#fff'
+                    }}
+                  >
+                      Join South-East WhatsApp Group
+                  </a>
+                  
+                  <br />
+
                   <button 
                     className="cyber-btn" 
                     onClick={() => { 
                         setIsSuccess(false); 
-                        setFormData({...formData, fullName: '', healthConcerns: ''}); 
+                        setFormData({...formData, fullName: '', healthConcerns: '', email: '', phone: ''}); 
                         setReceiptFile(null);
+                        setGeneratedId(null);
+                        setIsSubmitting(false);
                     }}
-                    style={{ marginTop: '2rem' }}
+                    style={{ marginTop: '1rem', fontSize: '0.9rem', padding: '0.8rem 1.5rem', opacity: 0.8 }}
                   >
                       Register Another Delegate
                   </button>
