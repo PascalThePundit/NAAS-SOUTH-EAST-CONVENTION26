@@ -20,7 +20,7 @@ const RegistrationForm = () => {
     healthConcerns: '',
   });
 
-  const [receiptFile, setReceiptFile] = useState(null);
+  const [receiptFiles, setReceiptFiles] = useState([]);
 
   // Fixed Registration Fee
   const totalAmount = 13000;
@@ -40,7 +40,13 @@ const RegistrationForm = () => {
     const { name, value, type, checked, files } = e.target;
     
     if (type === 'file') {
-      setReceiptFile(files[0]);
+      if (files.length > 13) {
+          alert('You can upload a maximum of 13 images.');
+          e.target.value = null;
+          setReceiptFiles([]);
+          return;
+      }
+      setReceiptFiles(Array.from(files));
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -78,7 +84,7 @@ const RegistrationForm = () => {
           formData.skill && 
           formData.gender &&
           formData.tshirtSize &&
-          receiptFile 
+          receiptFiles.length > 0
       );
   };
 
@@ -97,60 +103,52 @@ const RegistrationForm = () => {
     setIsSubmitting(true);
 
     try {
-        // Step 1: Generate the unique 6-digit transaction_id
+        // Step 1: Duplicate Check (Must happen before uploads)
+        // Check if Email already exists
+        const { data: existingEmail, error: emailError } = await supabase
+            .from('registrations')
+            .select('id')
+            .eq('email', formData.email)
+            .maybeSingle(); // Use maybeSingle() to avoid 406/PGRST116 errors on no result
+
+        if (emailError) {
+            console.error("Duplicate check error:", emailError);
+            throw new Error('Failed to verify email availability. Please try again.');
+        }
+
+        if (existingEmail) {
+            throw new Error('This email is already registered for the convention.');
+        }
+
+        // Step 2: Generate Transaction ID
         const newTransactionId = generate6DigitID();
 
-        // Step 2: Duplicate Check (Crucial for Production)
-        try {
-            // Check if Email already exists
-            const { data: existingEmail, error: emailError } = await supabase
-                .from('registrations')
-                .select('id')
-                .eq('email', formData.email)
-                .single();
+        // Step 3: Upload receipts
+        const uploadedUrls = [];
 
-            if (existingEmail) {
-                throw new Error('This email is already registered. Please use a different email or contact support.');
+        for (const file of receiptFiles) {
+            const fileExt = file.name.split('.').pop();
+            // Create a cleaner file name to avoid path issues
+            const fileName = `${Date.now()}_${Math.floor(Math.random() * 10000)}.${fileExt}`;
+            
+            const { error: uploadError } = await supabase.storage
+                .from('receipts')
+                .upload(fileName, file);
+
+            if (uploadError) {
+                throw new Error(`Upload failed for ${file.name}: ${uploadError.message}`);
             }
 
-            // Check if Name + Institution combo already exists
-            const { data: existingName, error: nameError } = await supabase
-                .from('registrations')
-                .select('id')
-                .eq('full_name', formData.fullName)
-                .eq('institution', formData.institution)
-                .single();
-
-            if (existingName) {
-                throw new Error('A registration with this name and institution already exists.');
-            }
-        } catch (checkErr) {
-            // Re-throw if it's one of our validation errors
-            if (checkErr.message.includes('already registered') || checkErr.message.includes('already exists')) {
-                throw checkErr;
-            }
-            // Ignore "PGRST116" (no rows found) as it's the expected success case
-            if (checkErr.code !== 'PGRST116') {
-                console.warn("Duplicate check error:", checkErr);
-            }
+            const { data: { publicUrl } } = supabase.storage
+                .from('receipts')
+                .getPublicUrl(fileName);
+            
+            uploadedUrls.push(publicUrl);
         }
 
-        // Step 3: Upload receipt and save data to Supabase
-        const fileExt = receiptFile.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExt}`;
-        const filePath = `${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('receipts')
-          .upload(filePath, receiptFile);
-
-        if (uploadError) {
-          throw new Error(`Receipt upload failed: ${uploadError.message}`);
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('receipts')
-          .getPublicUrl(filePath);
+        // Step 4: Insert Data (Single Entry)
+        // Store as comma-separated string per instructions for 'receipt_url' column
+        const receiptUrlString = uploadedUrls.join(',');
 
         const { error: dbError } = await supabase
             .from('registrations')
@@ -168,22 +166,21 @@ const RegistrationForm = () => {
                 health_concerns: formData.healthConcerns,
                 total_amount: totalAmount,
                 payment_status: 'pending_verification',
-                receipt_url: publicUrl,
+                receipt_url: receiptUrlString,
                 transaction_id: newTransactionId
             },
             ]);
 
         if (dbError) {
+            // If the insert fails, we might want to log it or attempt cleanup, but for now just throw
             throw new Error(`Registration save failed: ${dbError.message}`);
         }
 
-        // Step 3: Trigger the email after the Supabase operation is successful
+        // Step 5: Trigger Email (Only after successful DB insert)
         try {
             const templateParams = {
                 full_name: formData.fullName,
                 transaction_id: newTransactionId,
-                // Requirement: Map the form's email input to the key 'to_email'.
-                // This ensures the email is sent to the registrant.
                 to_email: formData.email 
             };
             
@@ -195,19 +192,22 @@ const RegistrationForm = () => {
             );
             console.log('Confirmation email sent successfully.');
         } catch (emailError) {
-            // Requirement: If email fails, catch the error but still show success.
             console.error('Email sending failed, but registration was successful:', emailError);
+            // We do NOT block success state here, as the registration itself worked.
         }
 
-        // Requirement: Show the 'Success' screen with the 6-digit ID.
-        console.log('Registration flow complete.');
+        // Step 6: Final Success State
         setGeneratedId(newTransactionId);
         setIsSuccess(true);
 
     } catch (err) {
         console.error("Submission failed:", err);
         setErrorMsg(err.message);
-        window.alert(`Submission Failed: ${err.message}`); 
+        // Alert is optional but helpful for mobile users
+        if (!err.message.includes('registered')) {
+             window.alert(`Submission Failed: ${err.message}`); 
+        }
+    } finally {
         setIsSubmitting(false);
     }
   };
@@ -248,12 +248,29 @@ const RegistrationForm = () => {
                   
                   <br />
 
+                  <a 
+                    href="https://forms.gle/UtJXZyCLDxqrGESp6" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="cyber-btn"
+                    style={{ 
+                        display: 'inline-block', 
+                        textDecoration: 'none', 
+                        marginBottom: '1rem',
+                        background: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)', // Blue gradient
+                        color: '#fff',
+                        marginTop: '0.5rem'
+                    }}
+                  >
+                      Join a Sub-Committee Team
+                  </a>
+
                   <button 
                     className="cyber-btn" 
                     onClick={() => { 
                         setIsSuccess(false); 
                         setFormData({...formData, fullName: '', healthConcerns: '', email: '', phone: ''}); 
-                        setReceiptFile(null);
+                        setReceiptFiles([]);
                         setGeneratedId(null);
                         setIsSubmitting(false);
                     }}
@@ -461,11 +478,12 @@ const RegistrationForm = () => {
                     className="file-upload-input"
                     accept=".pdf, .png, .jpg, .jpeg"
                     onChange={handleChange}
+                    multiple
                     required
                 />
-                <label htmlFor="receipt-upload" className={`file-upload-label ${receiptFile ? 'has-file' : ''}`}>
+                <label htmlFor="receipt-upload" className={`file-upload-label ${receiptFiles.length > 0 ? 'has-file' : ''}`}>
                      <div className="upload-icon-wrapper">
-                        {receiptFile ? (
+                        {receiptFiles.length > 0 ? (
                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                              </svg>
@@ -479,10 +497,12 @@ const RegistrationForm = () => {
                      </div>
                      <div className="upload-text-content">
                         <span className="upload-main-text">
-                            {receiptFile ? 'Receipt Selected' : 'Upload proof of registration (receipt) paid to your local chapter'}
+                            {receiptFiles.length > 0 ? `${receiptFiles.length} File(s) Selected` : 'Upload proof of registration (receipt) paid to your local chapter'}
                         </span>
                         <span className="upload-sub-text">
-                            {receiptFile ? receiptFile.name : 'Click to browse (PDF, JPG, PNG)'}
+                            {receiptFiles.length > 0 
+                                ? receiptFiles.map(f => f.name).join(', ') 
+                                : 'Click to browse (PDF, JPG, PNG) - Max 13'}
                         </span>
                      </div>
                 </label>
