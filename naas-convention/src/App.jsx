@@ -8,6 +8,8 @@ import Schedule from './components/sections/Schedule';
 import './App.css'; // Global styles
 
 function App() {
+  const [isRegistered, setIsRegistered] = React.useState(false);
+
   return (
     <Layout>
       {/* Hero Section */}
@@ -49,17 +51,19 @@ function App() {
           </p>
           
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <RegistrationForm />
+            <RegistrationForm onSuccess={(val) => setIsRegistered(val)} />
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-             <a href="https://forms.gle/UtJXZyCLDxqrGESp6" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                <button className="venue-btn">
-                  Join a Sub-Committee Team
-                  <div className="btn-pulse"></div>
-                </button>
-             </a>
-          </div>
+          {!isRegistered && (
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <a href="https://forms.gle/UtJXZyCLDxqrGESp6" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                  <button className="venue-btn">
+                    Join a Sub-Committee Team
+                    <div className="btn-pulse"></div>
+                  </button>
+              </a>
+            </div>
+          )}
         </div>
       </Section>
     </Layout>

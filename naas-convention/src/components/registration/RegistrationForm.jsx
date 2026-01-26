@@ -6,7 +6,7 @@ import './Registration.css';
 // Initialize EmailJS with the provided Public Key
 emailjs.init("OQJ0VkkQYN3J5RiDi");
 
-const RegistrationForm = () => {
+const RegistrationForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     fullName: '',
     gender: 'Male',
@@ -199,6 +199,7 @@ const RegistrationForm = () => {
         // Step 6: Final Success State
         setGeneratedId(newTransactionId);
         setIsSuccess(true);
+        if (onSuccess) onSuccess(true);
 
     } catch (err) {
         console.error("Submission failed:", err);
@@ -269,6 +270,7 @@ const RegistrationForm = () => {
                     className="cyber-btn" 
                     onClick={() => { 
                         setIsSuccess(false); 
+                        if (onSuccess) onSuccess(false);
                         setFormData({...formData, fullName: '', healthConcerns: '', email: '', phone: ''}); 
                         setReceiptFiles([]);
                         setGeneratedId(null);
