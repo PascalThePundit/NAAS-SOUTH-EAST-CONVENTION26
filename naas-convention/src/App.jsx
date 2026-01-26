@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from './components/layout/Layout';
 import Section from './components/ui/Section';
 import Hero from './components/ui/Hero';
@@ -8,7 +8,7 @@ import Schedule from './components/sections/Schedule';
 import './App.css'; // Global styles
 
 function App() {
-  const [isRegistered, setIsRegistered] = React.useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
 
   return (
     <Layout>
