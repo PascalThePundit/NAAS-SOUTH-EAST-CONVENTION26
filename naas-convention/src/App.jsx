@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from './components/layout/Layout';
 import Section from './components/ui/Section';
 import Hero from './components/ui/Hero';
@@ -6,9 +6,14 @@ import InfoSection from './components/sections/InfoSection';
 import RegistrationForm from './components/registration/RegistrationForm';
 import Schedule from './components/sections/Schedule';
 import './App.css'; // Global styles
+import { trackPageView } from './lib/analytics';
 
 function App() {
   const [isRegistered, setIsRegistered] = useState(false);
+
+  useEffect(() => {
+    trackPageView();
+  }, []);
 
   return (
     <Layout>
