@@ -226,3 +226,25 @@
     max-width: 280px;
   }
 }
+
+.btn-pitch {
+  padding: 0.8rem 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffd700;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 1px solid #ffd700;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  backdrop-filter: blur(5px);
+  margin-top: 0.5rem;
+}
+
+.btn-pitch:hover {
+  background: rgba(255, 215, 0, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
