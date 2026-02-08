@@ -16,6 +16,17 @@ const PitchEntry = ({ isOpen, onClose, onVerified }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
+    if (!isOpen) {
+      setStep('verify');
+      setError('');
+      setUid('');
+      setAgreed(false);
+      setVideoFile(null);
+      setDocFile(null);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (step === 'success') {
       const duration = 5 * 1000;
       const animationEnd = Date.now() + duration;
@@ -357,26 +368,70 @@ const PitchEntry = ({ isOpen, onClose, onVerified }) => {
           case 'guidelines-bubble':
               return (
                 <div className="glass-card-ui" style={{ 
-                    maxWidth: '500px', 
-                    width: '90%', 
-                    textAlign: 'center',
+                    maxWidth: '800px', 
+                    width: '95%', 
+                    maxHeight: '90vh',
+                    overflowY: 'auto',
+                    textAlign: 'left',
                     border: '1px solid #ffd700',
-                    animation: 'zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    padding: '2rem',
+                    animation: 'zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                    position: 'relative'
                 }}>
-                    <h2 style={{ color: '#ffd700', marginBottom: '1.5rem', textTransform: 'uppercase' }}>
+                    <h2 style={{ color: '#ffd700', marginBottom: '1.5rem', textTransform: 'uppercase', textAlign: 'center' }}>
                         Business Pitch Guidelines
                     </h2>
-                    <p style={{ lineHeight: '1.6', color: '#fff', marginBottom: '2rem', fontSize: '1.1rem' }}>
-                        All submissions must be completed on or before 15th March. 
-                        Late submissions will not be accepted. 
-                        The best presentation will be rewarded with the Grand prize.
-                    </p>
-                    <button 
-                        className="cyber-btn" 
-                        onClick={() => setStep('requirements-bubble')}
-                    >
-                        Close
-                    </button>
+                    
+                    <div style={{ color: '#fff', lineHeight: '1.6', fontSize: '1.05rem' }}>
+                        <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
+                            <li style={{ marginBottom: '0.5rem' }}>All submissions must be completed <strong>on or before 15th March</strong>.</li>
+                            <li style={{ marginBottom: '0.5rem' }}>Late submissions will not be accepted.</li>
+                            <li style={{ marginBottom: '0.5rem' }}>If Your Pitch Is Selected, You will present before the entire delegation at the YES NAAS Convention.</li>
+                            <li style={{ marginBottom: '0.5rem' }}>The best presentation will be picked and rewarded with the Grand price after further examination.</li>
+                        </ul>
+
+                        <h3 style={{ color: '#ffd700', marginTop: '2rem', marginBottom: '1rem', borderBottom: '1px solid rgba(255, 215, 0, 0.3)', paddingBottom: '0.5rem' }}>
+                            Required Submissions
+                        </h3>
+                        <p style={{ marginBottom: '1rem' }}>Each participant must upload <strong>two (2) items only</strong>:</p>
+                        
+                        <div style={{ marginLeft: '1rem' }}>
+                            <h4 style={{ color: '#00c6ff', marginBottom: '0.5rem' }}>1. Business Pitch Video</h4>
+                            <ul style={{ listStyleType: 'circle', paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
+                                <li>Maximum length: <strong>4 minutes</strong></li>
+                                <li>The video should clearly explain the business idea.</li>
+                                <li>Creativity and clarity are encouraged.</li>
+                                <li>Clear audio and stable video quality are expected.</li>
+                            </ul>
+
+                            <h4 style={{ color: '#00c6ff', marginBottom: '0.5rem' }}>2. Business Pitch Document</h4>
+                            <ul style={{ listStyleType: 'circle', paddingLeft: '1.5rem', marginBottom: '1rem' }}>
+                                <li>Accepted formats: <strong>PDF, PowerPoint (PPT), or Word document</strong></li>
+                                <li>The document should clearly contain:
+                                    <ul style={{ listStyleType: 'square', paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
+                                        <li>Business name and overview</li>
+                                        <li>Problem statement</li>
+                                        <li>Proposed solution</li>
+                                        <li>Target market</li>
+                                        <li>Business model</li>
+                                        <li>Competitive advantage</li>
+                                        <li>Expected impact</li>
+                                        <li>Implementation plan</li>
+                                        <li>Basic financial overview</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div style={{ textAlign: 'center', marginTop: '2rem', paddingBottom: '1rem' }}>
+                        <button 
+                            className="cyber-btn" 
+                            onClick={() => setStep('main-guidelines')}
+                        >
+                            I Understand & Proceed
+                        </button>
+                    </div>
                 </div>
               );
 
@@ -428,13 +483,39 @@ const PitchEntry = ({ isOpen, onClose, onVerified }) => {
                             border: 'none',
                             color: '#fff',
                             fontSize: '1.5rem',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            zIndex: 10
                         }}
                     >
                         &times;
                     </button>
 
-                    <h2 style={{ color: '#ffd700', textAlign: 'center', marginBottom: '2rem' }}>
+                    <button 
+                        onClick={() => setStep('guidelines-bubble')}
+                        style={{
+                            position: 'absolute',
+                            top: '15px',
+                            left: '15px',
+                            background: 'rgba(255, 215, 0, 0.1)',
+                            border: '1px solid #ffd700',
+                            color: '#ffd700',
+                            borderRadius: '50%',
+                            width: '32px',
+                            height: '32px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.1rem',
+                            fontWeight: 'bold',
+                            zIndex: 10
+                        }}
+                        title="View Guidelines"
+                    >
+                        ?
+                    </button>
+
+                    <h2 style={{ color: '#ffd700', textAlign: 'center', marginBottom: '2rem', marginTop: '1rem' }}>
                         Submit Your Pitch
                     </h2>
 
