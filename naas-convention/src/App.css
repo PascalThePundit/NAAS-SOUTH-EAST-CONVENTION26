@@ -69,8 +69,8 @@ body {
   scrollbar-width: none;  
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-body::-webkit-scrollbar {
+/* Hide scrollbar for Chrome, Safari and Opera for all elements */
+*::-webkit-scrollbar {
   display: none;
 }
 

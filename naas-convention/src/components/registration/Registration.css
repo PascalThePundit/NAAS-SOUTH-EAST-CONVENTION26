@@ -367,3 +367,44 @@ select.input-field option {
     color: #fff;
     font-weight: 500;
 }
+
+/* Pitch Entry Specific Styles */
+.pitch-modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem; /* Consistent spacing between major sections */
+}
+
+.pitch-upload-section h3 {
+    text-align: center;
+    margin-bottom: 1rem;
+    color: #fff;
+}
+
+.pitch-agreement-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+}
+
+.pitch-agreement-label {
+    display: inline-flex;
+    align-items: flex-start; /* Align checkbox to top of text */
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #ccc;
+    text-align: left;
+}
+
+.pitch-agreement-label input[type="checkbox"] {
+    transform: scale(1.2);
+    accent-color: #ffd700;
+    margin-top: 0.2rem; /* Adjust checkbox alignment with text */
+}
+
+.pitch-agreement-label p {
+    margin: 0;
+    padding: 0;
+}

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import confetti from 'canvas-confetti';
 import '../registration/Registration.css'; // Reusing existing styles for consistency
 
 const PitchEntry = ({ isOpen, onClose, onVerified }) => {
@@ -13,6 +14,31 @@ const PitchEntry = ({ isOpen, onClose, onVerified }) => {
   const [docFile, setDocFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  useEffect(() => {
+    if (step === 'success') {
+      const duration = 5 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1100 };
+
+      const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+      const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        // since particles fall down, start a bit higher than random
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+      }, 250);
+      
+      return () => clearInterval(interval);
+    }
+  }, [step]);
 
   if (!isOpen) return null;
 
@@ -412,63 +438,76 @@ const PitchEntry = ({ isOpen, onClose, onVerified }) => {
                         Submit Your Pitch
                     </h2>
 
-                    <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
-                        <h3 style={{ color: '#fff', marginBottom: '1rem' }}>Agreement</h3>
-                        <p style={{ color: '#ccc', marginBottom: '1rem' }}>
-                            By proceeding, you acknowledge that your submission represents your own original work and that you agree to the terms of the NAAS Convention Business Pitch competition.
-                        </p>
-                        
-                        <label style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '1rem', 
-                            cursor: 'pointer',
-                            padding: '1rem',
-                            background: agreed ? 'rgba(37, 211, 102, 0.1)' : 'transparent',
-                            border: agreed ? '1px solid #25D366' : '1px solid rgba(255,255,255,0.2)',
-                            borderRadius: '4px',
-                            transition: 'all 0.3s ease'
-                        }}>
-                            <input 
-                                type="checkbox" 
-                                checked={agreed} 
-                                onChange={(e) => setAgreed(e.target.checked)} 
-                                style={{ transform: 'scale(1.5)', accentColor: '#25D366' }}
-                            />
-                            <span style={{ color: '#fff', fontWeight: '500' }}>
-                                I have read and agree to the Business Pitch guidelines.
-                            </span>
-                        </label>
-                    </div>
+                    <div className="pitch-modal-content">
+                        <div className="pitch-upload-section">
+                            <h3 style={{ marginBottom: '1rem' }}>Upload Materials</h3>
+                            
+                            <div className="file-upload-container" style={{ marginBottom: '1.5rem' }}>
+                                <input
+                                    type="file"
+                                    id="video-upload"
+                                    className="file-upload-input"
+                                    accept="video/mp4,video/quicktime,video/x-msvideo"
+                                    onChange={(e) => handleFileChange(e, 'video')}
+                                />
+                                <label htmlFor="video-upload" className={`file-upload-label ${videoFile ? 'has-file' : ''}`}>
+                                    <div className="upload-icon-wrapper">
+                                        {videoFile ? (
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        ) : (
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffd700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                <polyline points="17 8 12 3 7 8"></polyline>
+                                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <div className="upload-text-content">
+                                        <span className="upload-main-text">
+                                            {videoFile ? `Video Selected: ${videoFile.name}` : 'Upload Business Pitch Video'}
+                                        </span>
+                                        <span className="upload-sub-text">
+                                            Max 4 mins, 50MB (MP4, MOV, AVI)
+                                        </span>
+                                    </div>
+                                </label>
+                            </div>
 
-                    <div style={{ opacity: agreed ? 1 : 0.5, pointerEvents: agreed ? 'auto' : 'none', transition: 'opacity 0.3s ease' }}>
-                        <h3 style={{ color: '#fff', marginBottom: '1rem' }}>Upload Materials</h3>
-                        
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', color: '#00c6ff', marginBottom: '0.5rem' }}>
-                                1. Business Pitch Video (Max 4 mins, 50MB)
-                            </label>
-                            <input 
-                                type="file" 
-                                accept="video/mp4,video/quicktime,video/x-msvideo"
-                                onChange={(e) => handleFileChange(e, 'video')}
-                                style={{ color: '#fff' }}
-                            />
-                            {videoFile && <div style={{ color: '#25D366', fontSize: '0.9rem', marginTop: '0.3rem' }}>Selected: {videoFile.name}</div>}
-                        </div>
-
-                        <div style={{ marginBottom: '2rem' }}>
-                            <label style={{ display: 'block', color: '#00c6ff', marginBottom: '0.5rem' }}>
-                                2. Business Pitch Document (PDF, PPTX, DOCX)
-                            </label>
-                            <input 
-                                type="file" 
-                                accept=".pdf,.docx,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                                onChange={(e) => handleFileChange(e, 'document')}
-                                style={{ color: '#fff' }}
-                            />
-                            {docFile && <div style={{ color: '#25D366', fontSize: '0.9rem', marginTop: '0.3rem' }}>Selected: {docFile.name}</div>}
-                        </div>
+                            <div className="file-upload-container" style={{ marginBottom: '2rem' }}>
+                                <input
+                                    type="file"
+                                    id="document-upload"
+                                    className="file-upload-input"
+                                    accept=".pdf,.docx,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                                    onChange={(e) => handleFileChange(e, 'document')}
+                                />
+                                <label htmlFor="document-upload" className={`file-upload-label ${docFile ? 'has-file' : ''}`}>
+                                    <div className="upload-icon-wrapper">
+                                        {docFile ? (
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        ) : (
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffd700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                <polyline points="17 8 12 3 7 8"></polyline>
+                                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <div className="upload-text-content">
+                                        <span className="upload-main-text">
+                                            {docFile ? `Document Selected: ${docFile.name}` : 'Upload Business Pitch Document'}
+                                        </span>
+                                        <span className="upload-sub-text">
+                                            PDF, PPTX, or DOCX
+                                        </span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div> {/* Close pitch-upload-section */}
 
                         {error && (
                             <div style={{ 
@@ -482,16 +521,29 @@ const PitchEntry = ({ isOpen, onClose, onVerified }) => {
                                 {error}
                             </div>
                         )}
+                        
+                        <div className="pitch-agreement-section">
+                            <label className="pitch-agreement-label">
+                                <input 
+                                    type="checkbox" 
+                                    checked={agreed} 
+                                    onChange={(e) => setAgreed(e.target.checked)} 
+                                />
+                                <p>
+                                    I have read and agree to the Business Pitch guidelines. By proceeding, you acknowledge that your submission represents your own original work and that you agree to the terms of the NAAS Convention Business Pitch competition.
+                                </p>
+                            </label>
+                        </div> {/* Close pitch-agreement-section */}
 
                         <button 
                             className="cyber-btn" 
-                            style={{ width: '100%' }}
-                            disabled={!videoFile || !docFile || uploading}
+                            style={{ width: '100%', marginTop: '1.5rem' }} /* Added margin-top for spacing */
+                            disabled={!agreed || !videoFile || !docFile || uploading}
                             onClick={handleSubmit}
                         >
                             {uploading ? 'Uploading & Submitting...' : 'Submit Pitch'}
                         </button>
-                    </div>
+                    </div> {/* Close pitch-modal-content */}
                 </div>
             );
 
