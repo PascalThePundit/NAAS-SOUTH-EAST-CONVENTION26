@@ -456,7 +456,7 @@ const RegistrationForm = ({ onSuccess }) => {
                     required 
                 >
                     <option value="Graphic Design">Graphic Design</option>
-                    <option value="Baking & Small Chops Making">Baking & Small Chops Making</option>
+                    <option value="Baking & Small Chops Making">Baking & Healthy Foods Making</option>
                     <option value="Digital Marketing">Digital Marketing</option>
                     <option value="Interior Decoration & Event Styling">Interior Decoration & Event Styling</option>
                     <option value="Photography, Videography & Drone Piloting">Photography, Videography & Drone Piloting</option>
