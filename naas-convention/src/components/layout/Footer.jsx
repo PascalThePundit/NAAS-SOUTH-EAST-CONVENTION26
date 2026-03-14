@@ -23,11 +23,11 @@ const Footer = () => {
           Visitors: {visitorCount.toLocaleString()}
         </p>
       )}
-      <div className="footer-links">
+      {/* <div className="footer-links">
         <span className="social-link">Instagram</span>
         <span className="social-link">Twitter</span>
         <span className="social-link">LinkedIn</span>
-      </div>
+      </div> */}
     </footer>
   );
 };

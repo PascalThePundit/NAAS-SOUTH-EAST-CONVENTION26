@@ -15,7 +15,7 @@ const RegistrationForm = ({ onSuccess }) => {
     phone: '',
     department: '',
     institution: '',
-    zone: 'Enugu', 
+    zone: '', 
     skill: 'Graphic Design',
     tshirtSize: 'M', 
     healthConcerns: '',
@@ -431,30 +431,31 @@ const RegistrationForm = ({ onSuccess }) => {
              <div className="input-container">
                 <select 
                     name="zone" 
-                    className={`input-field ${!isValid('zone') ? 'invalid' : ''} has-value`}
+                    className={`input-field ${!isValid('zone') ? 'invalid' : ''}`}
                     value={formData.zone}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     required 
                 >
+                    <option value="" disabled>Select your zone</option>
                     <option value="Enugu">Enugu</option>
                     <option value="Imo">Imo</option>
                     <option value="Ebonyi">Ebonyi</option>
                     <option value="Anambra">Anambra</option>
                 </select>
-                <label className="input-label" style={{ top: '-12px', fontSize: '12px', color: '#ffd700' }}>Zone</label>
             </div>
 
             {/* Skill Dropdown */}
             <div className="input-container">
                 <select 
                     name="skill" 
-                    className={`input-field ${!isValid('skill') ? 'invalid' : ''} has-value`}
+                    className={`input-field ${!isValid('skill') ? 'invalid' : ''} ${formData.skill ? 'has-value' : ''}`}
                     value={formData.skill}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     required 
                 >
+                    <option value="" disabled>Select a skill</option>
                     <option value="Graphic Design">Graphic Design</option>
                     <option value="Baking & Small Chops Making">Baking & Healthy Foods Making</option>
                     <option value="Digital Marketing">Digital Marketing</option>
@@ -463,18 +464,19 @@ const RegistrationForm = ({ onSuccess }) => {
                     <option value="Perfume Making">Perfume Making</option>
                     <option value="Professional First Aid Training">Professional First Aid Training</option>
                 </select>
-                <label className="input-label" style={{ top: '-12px', fontSize: '12px', color: '#ffd700' }}>Skill Acquisition</label>
+                <label className="input-label">Skill Acquisition</label>
             </div>
             
             {/* T-Shirt Size - Always Visible */}
             <div className="input-container">
                 <select 
                     name="tshirtSize" 
-                    className={`input-field has-value`}
+                    className={`input-field ${formData.tshirtSize ? 'has-value' : ''}`}
                     value={formData.tshirtSize}
                     onChange={handleChange}
                     required 
                 >
+                    <option value="" disabled>Select T-Shirt Size</option>
                     <option value="S">S</option>
                     <option value="M">M</option>
                     <option value="L">L</option>
@@ -482,7 +484,7 @@ const RegistrationForm = ({ onSuccess }) => {
                     <option value="XXL">XXL</option>
                     <option value="XXXL">XXXL</option>
                 </select>
-                <label className="input-label" style={{ top: '-12px', fontSize: '12px', color: '#ffd700' }}>T-Shirt Size (Required)</label>
+                <label className="input-label">T-Shirt Size (Required)</label>
             </div>
 
              {/* Health Concerns - Optional Again */}
