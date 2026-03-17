@@ -53,11 +53,12 @@ const Hero = () => {
           
           <button 
             className="btn-pitch" 
-            onClick={() => setIsPitchModalOpen(true)}
+            style={{ borderColor: '#ff4d4d', color: '#ff4d4d', cursor: 'default', opacity: 0.8 }}
+            disabled
           >
             APPLY FOR BUSINESS PITCH – ₦200,000 Start Up
-            <span style={{ display: 'block', fontSize: '0.75rem', marginTop: '0.2rem', opacity: 0.9, textTransform: 'none' }}>
-                Ends 15th March
+            <span style={{ display: 'block', fontSize: '0.75rem', marginTop: '0.2rem', opacity: 1, textTransform: 'none', color: '#ff4d4d', fontWeight: 'bold' }}>
+                CLOSED
             </span>
           </button>
         </div>

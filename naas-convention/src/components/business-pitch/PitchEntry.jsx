@@ -51,7 +51,7 @@ const PitchEntry = ({ isOpen, onClose, onVerified }) => {
     }
   }, [step]);
 
-  if (!isOpen) return null;
+  if (!isOpen || true) return null; // Feature is CLOSED
 
   const handleVerify = async (e) => {
     // ... (existing handleVerify logic remains unchanged)
